@@ -29,6 +29,35 @@ class TestBooksCollector:
         collector.add_new_book('Гарри Поттер')
         assert len(collector.get_books_genre()) == 1
 
+     # проверяем, что метод add_new_book добавляет книгу. Название книги может содержать максимум 40 символов.
+    @pytest.mark.parametrize( "book_name, expected_length",
+        [
+            ("К", 1),
+            ("Кн", 2),
+            ("Книга с названием тридцать восемь симв", 38),
+            ("Книга с названием тридцать девять симво", 39),
+            ("Книга с названием в сорок символов книга", 40),
+        ]
+    )
+    def test_add_valid_books(self, collector, book_name, expected_length):
+        assert len(book_name) == expected_length
+        collector.add_new_book(book_name)
+        assert book_name in collector.books_genre
+
+    # проверяем, что метод add_new_book не добавляет книгу, название которой содержит больше 40 символов.
+    @pytest.mark.parametrize(
+        "book_name, expected_length",
+        [
+            ("Слишком длинное название которое превышает сорок символов", 57),
+            ("", 0),
+            ("Книга с названием в сорок один символ кни", 41),
+        ]
+    )
+    def test_add_invalid_books(self, collector, book_name, expected_length):
+        assert len(book_name) == expected_length
+        collector.add_new_book(book_name)
+        assert book_name not in collector.books_genre
+
     # проверяем что метод устанавливает жанр книги, если книга есть в books_genreи её жанр входит в списокgenre
     def test_set_existing_book_existing_genre(self, collector):
         collector.add_new_book('Автостопом по галактике')
@@ -40,6 +69,7 @@ class TestBooksCollector:
         collector.add_new_book('Двенадцать стульев')
         collector.set_book_genre('Двенадцать стульев', 'Комедии')
         assert collector.get_book_genre('Двенадцать стульев') == 'Комедии'
+        assert 'Двенадцать стульев' in collector.get_books_with_specific_genre('Комедии')
 
     # проверяем, что метод get_books_genre— выводит текущий словарь books_genre
     @pytest.mark.parametrize("books",
@@ -54,7 +84,7 @@ class TestBooksCollector:
         expected = dict(books)
         for book_name, genre in books:
             collector.add_new_book(book_name)
-            collector.set_book_genre(book_name, genre)  # Исправлено отступы
+            collector.set_book_genre(book_name, genre)
         assert collector.get_books_genre() == expected
 
     # проверяем, что метод get_books_for_children — возвращает книги, которые подходят детям. У жанра книги не должно быть возрастного рейтинга.
@@ -76,6 +106,14 @@ class TestBooksCollector:
         collector.add_book_in_favorites('Война и мир')
         assert 'Война и мир' in collector.get_list_of_favorites_books()
 
+    # проверяем, что метод add_book_in_favorites — не добавляет книгу в избранное, если книга не находится в коллекции.
+    def test_add_nonexistent_book_to_favorites(self, collector):
+        book_name = "Книга, которой нет в коллекции"
+        assert book_name not in collector.books_genre
+        collector.add_book_in_favorites(book_name)
+        assert book_name not in collector.get_list_of_favorites_books()
+        assert collector.get_list_of_favorites_books() == []
+
     # проверяем, что невозможно добавить повторно одну и ту же книгу в избранное
     def test_add_duplicate_book_to_favorites(self, collector):
         collector.add_new_book('Вино из одуванчиков')
@@ -92,8 +130,11 @@ class TestBooksCollector:
 
     # проверяем, что невозможно удалить книгу из избранного, если её там нет.
     def test_delete_nonexistent_favorite(self, collector):
-        collector.add_book_in_favorites('Неизвестная книга')
-        collector.delete_book_from_favorites('Неизвестная книга')
+        non_existent_book = "Неизвестная книга"
+        assert non_existent_book not in collector.books_genre
+        collector.add_book_in_favorites(non_existent_book)
+        assert collector.get_list_of_favorites_books() == []
+        collector.delete_book_from_favorites(non_existent_book)
         assert collector.get_list_of_favorites_books() == []
 
     # проверяем, что метод get_list_of_favorites_books — получает список избранных книг.
